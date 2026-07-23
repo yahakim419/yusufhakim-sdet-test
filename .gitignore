@@ -20,3 +20,10 @@ web/.vite/
 
 # Local dev scripts
 scripts/
+
+
+# Documents
+documents/
+
+# Project skills
+.cursor/
