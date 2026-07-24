@@ -30,7 +30,6 @@ module Api
         assessment.created_by = current_user.id
 
         if assessment.save
-          SystemPromptGeneratorWorker.perform_async(assessment.id)
           json_response({ assessment:, system_prompt_generated: true }, :created)
         else
           json_error(assessment.errors.full_messages.first, :unprocessable_entity)
