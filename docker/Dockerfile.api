@@ -1,0 +1,25 @@
+# Local SDET API image — multi-arch (Mac Apple Silicon + Windows/amd64).
+# Does not replace api/Dockerfile (production). No arch-specific jemalloc preload.
+FROM ruby:3.3.2
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    git \
+    libpq-dev \
+    curl \
+    tzdata \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY Gemfile Gemfile.lock ./
+RUN bundle install --jobs 4
+
+COPY . .
+
+RUN mkdir -p tmp/pids tmp/cache tmp/sockets log
+
+EXPOSE 3001
+
+# Compose sets entrypoint to docker/api-entrypoint.sh (bind-mounted).
+CMD ["bundle", "exec", "puma", "-C", "config/puma.rb"]

@@ -1,0 +1,14 @@
+# Local SDET web image — multi-arch (Mac Apple Silicon + Windows/amd64).
+FROM node:20-bookworm-slim
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY . .
+
+EXPOSE 5173
+
+# Compose sets entrypoint to docker/web-entrypoint.sh (bind-mounted).
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173"]
