@@ -15,9 +15,7 @@ module Sessions
       # Allow upgrading end_reason from 'error' to a manual reason (candidate/assessor ended cleanly)
       if @session.ended?
         manual = %w[manual_candidate manual_assessor]
-        if manual.include?(reason.to_s) && @session.end_reason == 'error'
-          @session.update_column(:end_reason, reason.to_s)
-        end
+        @session.update_column(:end_reason, reason.to_s) if manual.include?(reason.to_s) && @session.end_reason == 'error'
         return @session
       end
 
@@ -27,9 +25,9 @@ module Sessions
         duration = @session.started_at ? (Time.current - @session.started_at).to_i : nil
 
         @session.update!(
-          status:           'ended',
-          end_reason:       reason.to_s,
-          ended_at:         Time.current,
+          status: 'ended',
+          end_reason: reason.to_s,
+          ended_at: Time.current,
           duration_seconds: duration
         )
 
@@ -48,7 +46,7 @@ module Sessions
     def publish_status_update
       redis = ::Redis.new(url: ENV.fetch('REDIS_URL', 'redis://localhost:6379/1'))
       redis.publish("coverage:#{@session.id}", { type: 'session_status', status: @session.status, end_reason: @session.end_reason }.to_json)
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("[EndHandler] Failed to publish status update: #{e.message}")
     ensure
       redis&.close
@@ -59,7 +57,7 @@ module Sessions
       return if @session.portfolio.present?
 
       @session.create_portfolio!(
-        candidate_id:      @session.candidate_id,
+        candidate_id: @session.candidate_id,
         generation_status: 'pending'
       )
     end

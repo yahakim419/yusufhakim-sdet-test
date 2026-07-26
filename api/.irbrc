@@ -4,28 +4,28 @@
 # Prints ready-to-use test tokens on startup so you can copy-paste immediately.
 
 if defined?(Rails) && Rails.env.development?
-  puts ""
-  puts "╔══════════════════════════════════════════════════════════════════╗"
-  puts "║              AI Interview — Dev Console Helpers                  ║"
-  puts "╚══════════════════════════════════════════════════════════════════╝"
-  puts ""
+  puts ''
+  puts '╔══════════════════════════════════════════════════════════════════╗'
+  puts '║              AI Interview — Dev Console Helpers                  ║'
+  puts '╚══════════════════════════════════════════════════════════════════╝'
+  puts ''
 
   # Find all available organizations so the developer knows what schemes exist
   begin
     orgs = ActiveRecord::Base.connection.select_all(
-      "SELECT id, name, scheme FROM public.organizations WHERE id != 0 AND discarded_at IS NULL ORDER BY id LIMIT 10"
+      'SELECT id, name, scheme FROM public.organizations WHERE id != 0 AND discarded_at IS NULL ORDER BY id LIMIT 10'
     ).to_a
 
     if orgs.empty?
-      puts "  ⚠  No organizations found in public.organizations."
-      puts "     Run `rails db:seed` first to create a test organization."
+      puts '  ⚠  No organizations found in public.organizations.'
+      puts '     Run `rails db:seed` first to create a test organization.'
     else
-      puts "  Available tenants (from public.organizations):"
-      puts ""
+      puts '  Available tenants (from public.organizations):'
+      puts ''
       orgs.each do |org|
         puts "    id=#{org['id'].to_s.ljust(4)} scheme=#{org['scheme'].ljust(20)} name=#{org['name']}"
       end
-      puts ""
+      puts ''
 
       # Auto-mint tokens for the first org
       first = orgs.first
@@ -35,27 +35,27 @@ if defined?(Rails) && Rails.env.development?
       student_token = JsonWebToken.encode({ user_id: 2, role: 'student', scheme: scheme })
 
       puts "  Ready-to-use tokens for scheme='#{scheme}':"
-      puts ""
-      puts "  ADMIN TOKEN (use for assessor routes):"
+      puts ''
+      puts '  ADMIN TOKEN (use for assessor routes):'
       puts "  #{admin_token}"
-      puts ""
-      puts "  STUDENT TOKEN (use for candidate routes):"
+      puts ''
+      puts '  STUDENT TOKEN (use for candidate routes):'
       puts "  #{student_token}"
-      puts ""
-      puts "  Quick helpers available in this console:"
-      puts ""
+      puts ''
+      puts '  Quick helpers available in this console:'
+      puts ''
       puts "    mint(role: 'admin',   scheme: '#{scheme}', user_id: 1)  → JWT string"
       puts "    org(scheme: '#{scheme}')                                 → Organization record"
       puts "    header(role: 'admin', scheme: '#{scheme}')               → curl -H string"
-      puts ""
+      puts ''
     end
-  rescue => e
+  rescue StandardError => e
     puts "  ⚠  Could not load organizations: #{e.message}"
-    puts "     Is the database running and migrated?"
+    puts '     Is the database running and migrated?'
   end
 
-  puts "══════════════════════════════════════════════════════════════════════"
-  puts ""
+  puts '══════════════════════════════════════════════════════════════════════'
+  puts ''
 
   # ── Helper methods available in the console session ──────────────────────
 
@@ -68,8 +68,8 @@ if defined?(Rails) && Rails.env.development?
   def mint(user_id: 1, role: 'admin', scheme: nil, **extra)
     scheme ||= begin
       ActiveRecord::Base.connection
-        .select_value("SELECT scheme FROM public.organizations WHERE id != 0 AND discarded_at IS NULL ORDER BY id LIMIT 1")
-    rescue
+                        .select_value('SELECT scheme FROM public.organizations WHERE id != 0 AND discarded_at IS NULL ORDER BY id LIMIT 1')
+    rescue StandardError
       'unknown'
     end
 
@@ -97,12 +97,12 @@ if defined?(Rails) && Rails.env.development?
   # Examples:
   #   header
   #   header(role: 'student', user_id: 5)
-  def header(**opts)
-    token = mint(**opts)
+  def header(**)
+    token = mint(**)
     h = "Authorization: Bearer #{token}"
-    puts ""
+    puts ''
     puts "  curl -H '#{h}' http://localhost:3001/api/v1/assessments"
-    puts ""
+    puts ''
     h
   end
 end

@@ -7,8 +7,6 @@ Rails.application.config.after_initialize do
     required_vars = %w[GEMINI_API_KEY GEMINI_LIVE_MODEL GEMINI_FLASH_MODEL GEMINI_PRO_MODEL]
     missing = required_vars.reject { |var| ENV[var].present? }
 
-    if missing.any?
-      raise "Missing required Gemini environment variables: #{missing.join(', ')}"
-    end
+    raise "Missing required Gemini environment variables: #{missing.join(', ')}" if missing.any?
   end
 end

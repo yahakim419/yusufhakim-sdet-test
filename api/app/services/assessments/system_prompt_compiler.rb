@@ -57,8 +57,8 @@ module Assessments
       lines << "SKILL: #{skill.skill_label}"
       lines << "SCOPE: #{skill.scope_include}" if skill.scope_include.present?
       lines << "WHAT DOES NOT COUNT: #{skill.scope_exclude}" if skill.scope_exclude.present?
-      lines << ""
-      lines << "PROFICIENCY LEVELS:"
+      lines << ''
+      lines << 'PROFICIENCY LEVELS:'
       lines << "L1 — #{skill.l1_anchor}"
       lines << "L2 — #{skill.l2_anchor}"
       lines << "L3 — #{skill.l3_anchor}"

@@ -26,7 +26,7 @@ class CoverageWebSocketMiddleware
   def handle_coverage_websocket(env, session_id)
     ws = Faye::WebSocket.new(env, nil, ping: 30)
 
-    redis_sub = nil  # track subscription Redis instance for cleanup
+    redis_sub = nil # track subscription Redis instance for cleanup
 
     ws.on :open do |_event|
       # Try header-based auth first (assessor dashboard with JWT in header).
@@ -34,7 +34,7 @@ class CoverageWebSocketMiddleware
       # message — this matches the pattern used by the audio WS for browser clients
       # that can't set WebSocket headers.
       session, error = authenticate_assessor(env, session_id)
-      next if error  # wait for auth message
+      next if error # wait for auth message
 
       send_current_state(ws, session)
       redis_sub = subscribe_to_coverage_updates(ws, session_id)
@@ -43,13 +43,17 @@ class CoverageWebSocketMiddleware
     ws.on :message do |event|
       next unless event.data.is_a?(String)
 
-      message = JSON.parse(event.data) rescue next
+      message = begin
+        JSON.parse(event.data)
+      rescue StandardError
+        next
+      end
       next unless message['type'] == 'auth'
 
       # Already authenticated via header — ignore
       next if redis_sub
 
-      token   = message['token'].to_s
+      token = message['token'].to_s
       session, error = authenticate_assessor_by_token(token, session_id)
 
       if error
@@ -63,10 +67,14 @@ class CoverageWebSocketMiddleware
     end
 
     ws.on :close do |_event|
-      Rails.logger.debug("[CoverageWS] Assessor disconnected from session #{session_id}")
+      Rails.logger.debug { "[CoverageWS] Assessor disconnected from session #{session_id}" }
       # H4 fix: unsubscribe so the blocking Thread exits cleanly instead of
       # hanging forever waiting for the next message.
-      Thread.new { redis_sub&.unsubscribe rescue nil }
+      Thread.new do
+        redis_sub&.unsubscribe
+      rescue StandardError
+        nil
+      end
     end
 
     ws.rack_response
@@ -78,15 +86,15 @@ class CoverageWebSocketMiddleware
     discovered = session.coverage_maps.discovered.order(:id)
 
     payload = {
-      type:       'coverage_update',
-      status:     session.status,
+      type: 'coverage_update',
+      status: session.status,
       end_reason: session.end_reason,
-      skills:     maps.map { |m| coverage_json(m) },
+      skills: maps.map { |m| coverage_json(m) },
       discovered: discovered.map { |m| coverage_json(m) }
     }
 
     ws.send(payload.to_json)
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("[CoverageWS] Failed to send initial state: #{e.message}")
   end
 
@@ -100,13 +108,13 @@ class CoverageWebSocketMiddleware
         on.message do |_channel, message|
           EM.schedule do
             ws.send(message)
-          rescue => e
-            Rails.logger.debug("[CoverageWS] Failed to forward update: #{e.message}")
+          rescue StandardError => e
+            Rails.logger.debug { "[CoverageWS] Failed to forward update: #{e.message}" }
             redis.unsubscribe(channel)
           end
         end
       end
-    rescue => e
+    rescue StandardError => e
       Rails.logger.error("[CoverageWS] Redis subscription error for #{channel}: #{e.message}")
     ensure
       redis.disconnect!
@@ -117,9 +125,9 @@ class CoverageWebSocketMiddleware
 
   def authenticate_assessor(env, session_id)
     auth_header = env['HTTP_AUTHORIZATION']
-    return [nil, 'Missing authorization'] unless auth_header.present?
+    return [nil, 'Missing authorization'] if auth_header.blank?
 
-    authenticate_assessor_by_token(auth_header.split(' ').last, session_id)
+    authenticate_assessor_by_token(auth_header.split.last, session_id)
   end
 
   def authenticate_assessor_by_token(token, session_id)
@@ -132,19 +140,19 @@ class CoverageWebSocketMiddleware
     return [nil, 'Session not found'] unless session
 
     [session, nil]
-  rescue => e
+  rescue StandardError => e
     [nil, "Authentication failed: #{e.message}"]
   end
 
   def coverage_json(map)
     {
-      id:            map.id,
-      skill_id:      map.skill_id,
-      skill_label:   map.skill_label,
+      id: map.id,
+      skill_id: map.skill_id,
+      skill_label: map.skill_label,
       is_discovered: map.is_discovered,
-      state:         map.state,
-      probe_count:   map.probe_count,
-      last_signal:   map.last_signal
+      state: map.state,
+      probe_count: map.probe_count,
+      last_signal: map.last_signal
     }
   end
 end

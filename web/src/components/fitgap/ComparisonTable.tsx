@@ -10,12 +10,17 @@ function ResultBadge({ comparison }: { comparison: SkillComparison }) {
   const label = FIT_GAP_RESULT_LABELS[comparison.result];
   const classes = FIT_GAP_RESULT_CLASSES[comparison.result];
 
-  let icon = "";
   let suffix = "";
-  if (comparison.result === "match") icon = "✅";
-  else if (comparison.result === "exceed") { icon = "⭐"; suffix = comparison.delta ? ` +${comparison.delta}` : ""; }
-  else if (comparison.result === "gap") { icon = "⚠"; suffix = comparison.delta ? ` -${Math.abs(comparison.delta)}` : ""; }
-  else icon = "—";
+  let icon = "—";
+  if (comparison.result === "match") {
+    icon = "✅";
+  } else if (comparison.result === "exceed") {
+    icon = "⭐";
+    suffix = comparison.delta ? ` +${comparison.delta}` : "";
+  } else if (comparison.result === "gap") {
+    icon = "⚠";
+    suffix = comparison.delta ? ` -${Math.abs(comparison.delta)}` : "";
+  }
 
   return (
     <span className={cn("inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded", classes)}>

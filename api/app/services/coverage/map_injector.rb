@@ -28,16 +28,19 @@ module Coverage
       avg_min        = avg_minutes_per_remaining_skill(remaining_min, skills_left)
 
       payload = {
-        skills:                          configured.map { |m| skill_json(m) },
-        discovered:                      discovered.map { |m| skill_json(m) },
-        time_remaining_minutes:          remaining_min,
-        skills_remaining:                skills_left,
+        skills: configured.map { |m| skill_json(m) },
+        discovered: discovered.map { |m| skill_json(m) },
+        time_remaining_minutes: remaining_min,
+        skills_remaining: skills_left,
         avg_minutes_per_remaining_skill: avg_min,
-        pacing:                          pacing_bucket(avg_min),
-        priority_next:                   priority_next(configured)
+        pacing: pacing_bucket(avg_min),
+        priority_next: priority_next(configured)
       }
 
-      Rails.logger.info("[MapInjector] Coverage map: skills_remaining=#{skills_left} avg_min=#{avg_min} pacing=#{pacing_bucket(avg_min)} priority_next=#{payload[:priority_next]}")
+      Rails.logger.info(
+        "[MapInjector] Coverage map: skills_remaining=#{skills_left} avg_min=#{avg_min} " \
+        "pacing=#{pacing_bucket(avg_min)} priority_next=#{payload[:priority_next]}"
+      )
 
       "[COVERAGE_MAP]\n#{payload.to_json}\n[/COVERAGE_MAP]"
     end
@@ -61,9 +64,9 @@ module Coverage
 
     def skill_json(map)
       {
-        id:          map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
-        label:       map.skill_label,
-        state:       map.state,
+        id: map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
+        label: map.skill_label,
+        state: map.state,
         probe_count: map.probe_count
       }
     end

@@ -10,9 +10,9 @@ module Exports
     LEVEL_LABELS = { 1 => 'L1', 2 => 'L2', 3 => 'L3', 4 => 'L4', 5 => 'L5' }.freeze
     CONFIDENCE_LABELS = { 'high' => 'High', 'medium' => 'Medium', 'low' => 'Low' }.freeze
     RESULT_LABELS = {
-      'match'        => 'Match',
-      'gap'          => 'Gap',
-      'exceed'       => 'Exceeds',
+      'match' => 'Match',
+      'gap' => 'Gap',
+      'exceed' => 'Exceeds',
       'not_assessed' => 'Not Assessed'
     }.freeze
 
@@ -39,7 +39,7 @@ module Exports
     def render_header(pdf)
       pdf.font_size(22) { pdf.text @assessment.name, style: :bold }
       pdf.move_down 4
-      pdf.font_size(12) { pdf.text "Skill Portfolio Report" }
+      pdf.font_size(12) { pdf.text 'Skill Portfolio Report' }
       pdf.move_down 4
 
       pdf.font_size(10) do
@@ -53,25 +53,24 @@ module Exports
     end
 
     def render_portfolio_section(pdf)
-      pdf.font_size(16) { pdf.text "Skill Portfolio", style: :bold }
+      pdf.font_size(16) { pdf.text 'Skill Portfolio', style: :bold }
       pdf.move_down 8
 
       skills = @portfolio.portfolio_skills.includes(:assessor_override)
-      configured = skills.reject(&:is_discovered)
-      discovered = skills.select(&:is_discovered)
+      discovered, configured = skills.partition(&:is_discovered)
 
       if configured.any?
-        pdf.font_size(13) { pdf.text "Assessed Skills", style: :bold }
+        pdf.font_size(13) { pdf.text 'Assessed Skills', style: :bold }
         pdf.move_down 6
         configured.each { |skill| render_skill_card(pdf, skill) }
       end
 
-      if discovered.any?
-        pdf.move_down 6
-        pdf.font_size(13) { pdf.text "Discovered Skills", style: :bold }
-        pdf.move_down 6
-        discovered.each { |skill| render_skill_card(pdf, skill) }
-      end
+      return unless discovered.any?
+
+      pdf.move_down 6
+      pdf.font_size(13) { pdf.text 'Discovered Skills', style: :bold }
+      pdf.move_down 6
+      discovered.each { |skill| render_skill_card(pdf, skill) }
     end
 
     def render_skill_card(pdf, skill)
@@ -79,7 +78,7 @@ module Exports
       effective_level = override ? override.override_level : skill.ai_level
 
       pdf.font_size(11) do
-        pdf.text "#{skill.skill_label}", style: :bold
+        pdf.text skill.skill_label.to_s, style: :bold
 
         level_text = "Level: #{LEVEL_LABELS[effective_level]}"
         level_text += " (AI: #{LEVEL_LABELS[skill.ai_level]} → Override: #{LEVEL_LABELS[override.override_level]})" if override
@@ -89,14 +88,12 @@ module Exports
 
       pdf.move_down 4
 
-      if skill.competency_summary.present?
-        pdf.font_size(10) { pdf.text skill.competency_summary }
-      end
+      pdf.font_size(10) { pdf.text skill.competency_summary } if skill.competency_summary.present?
 
       if skill.evidence.any?
         pdf.move_down 4
         pdf.font_size(10) do
-          pdf.text "Evidence:", style: :bold
+          pdf.text 'Evidence:', style: :bold
           skill.evidence.each { |quote| pdf.text "  • #{quote}" }
         end
       end
@@ -104,12 +101,15 @@ module Exports
       if override&.assessor_notes.present?
         pdf.move_down 4
         pdf.font_size(10) do
-          pdf.text "Assessor Note:", style: :bold
+          pdf.text 'Assessor Note:', style: :bold
           pdf.text "  #{override.assessor_notes}"
         end
       end
 
-      pdf.stroke { pdf.stroke_color 'CCCCCC'; pdf.horizontal_rule }
+      pdf.stroke do
+        pdf.stroke_color 'CCCCCC'
+        pdf.horizontal_rule
+      end
       pdf.move_down 8
     end
 
@@ -121,14 +121,18 @@ module Exports
 
       comparisons = @fit_gap.skill_comparisons
 
-      table_data = [['Skill', 'Required', 'Candidate', 'Result', 'Delta']]
+      table_data = [%w[Skill Required Candidate Result Delta]]
       comparisons.each do |c|
         table_data << [
           c['skill_label'],
           c['expected_level'] ? "L#{c['expected_level']}" : '—',
           c['candidate_level'] ? "L#{c['candidate_level']}" : '—',
           RESULT_LABELS[c['result']] || c['result'],
-          c['delta'] ? (c['delta'] > 0 ? "+#{c['delta']}" : c['delta'].to_s) : '—'
+          if c['delta']
+            c['delta'].positive? ? "+#{c['delta']}" : c['delta'].to_s
+          else
+            '—'
+          end
         ]
       end
 
@@ -141,30 +145,31 @@ module Exports
 
       if @fit_gap.culture_narrative.present?
         pdf.move_down 12
-        pdf.font_size(12) { pdf.text "Culture & Competency Fit", style: :bold }
+        pdf.font_size(12) { pdf.text 'Culture & Competency Fit', style: :bold }
         pdf.move_down 4
         pdf.font_size(10) { pdf.text @fit_gap.culture_narrative }
       end
 
-      if @fit_gap.overall_narrative.present?
-        pdf.move_down 8
-        pdf.font_size(12) { pdf.text "Overall Assessment", style: :bold }
-        pdf.move_down 4
-        pdf.font_size(10) { pdf.text @fit_gap.overall_narrative }
-      end
+      return if @fit_gap.overall_narrative.blank?
+
+      pdf.move_down 8
+      pdf.font_size(12) { pdf.text 'Overall Assessment', style: :bold }
+      pdf.move_down 4
+      pdf.font_size(10) { pdf.text @fit_gap.overall_narrative }
     end
 
     def render_footer(pdf)
-      pdf.number_pages "Page <page> of <total>",
-                        at:     [pdf.bounds.left, 0],
-                        width:  pdf.bounds.right,
-                        align:  :center,
-                        size:   9,
-                        color:  '999999'
+      pdf.number_pages 'Page <page> of <total>',
+                       at: [pdf.bounds.left, 0],
+                       width: pdf.bounds.right,
+                       align: :center,
+                       size: 9,
+                       color: '999999'
     end
 
     def format_duration(seconds)
       return 'N/A' unless seconds
+
       mins = seconds / 60
       secs = seconds % 60
       "#{mins}m #{secs}s"

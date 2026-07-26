@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "active_support/core_ext/integer/time"
+require 'active_support/core_ext/integer/time'
 
 Rails.application.configure do
   # Code is not reloaded between requests.
@@ -17,10 +17,10 @@ Rails.application.configure do
   # config.require_master_key = true
 
   # Disable serving static files from `public/`.
-  config.public_file_server.enabled = ENV["RAILS_SERVE_STATIC_FILES"].present?
+  config.public_file_server.enabled = ENV['RAILS_SERVE_STATIC_FILES'].present?
 
   # Enable log buffering.
-  config.force_ssl = ENV.fetch("FORCE_SSL", "true") == "true"
+  config.force_ssl = ENV.fetch('FORCE_SSL', 'true') == 'true'
 
   # Log to STDOUT — required for log aggregation in containerized deployments.
   logger           = ActiveSupport::Logger.new($stdout)
@@ -28,7 +28,7 @@ Rails.application.configure do
   config.logger    = ActiveSupport::TaggedLogging.new(logger)
 
   # Log level (default: info in production)
-  config.log_level = ENV.fetch("RAILS_LOG_LEVEL", "info").to_sym
+  config.log_level = ENV.fetch('RAILS_LOG_LEVEL', 'info').to_sym
 
   # Use a real queuing backend for Active Job.
   config.active_job.queue_adapter = :sidekiq
@@ -45,5 +45,5 @@ Rails.application.configure do
   config.active_support.disallowed_deprecation_warnings = []
 
   # Use a cache store that supports distributed caching.
-  config.cache_store = :redis_cache_store, { url: ENV.fetch("REDIS_URL", "redis://localhost:6379/0") }
+  config.cache_store = :redis_cache_store, { url: ENV.fetch('REDIS_URL', 'redis://localhost:6379/0') }
 end

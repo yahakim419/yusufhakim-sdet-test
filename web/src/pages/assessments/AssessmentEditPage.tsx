@@ -26,7 +26,6 @@ import SkillPicker from "@/components/assessment/SkillPicker";
 import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import { assessmentsApi } from "@/services/assessments";
 import { TIME_LIMIT_OPTIONS } from "@/utils/constants";
-import type { AssessmentSkill } from "@/types";
 import type { AssessmentFormValues } from "./AssessmentNewPage";
 
 export default function AssessmentEditPage() {
@@ -41,7 +40,7 @@ export default function AssessmentEditPage() {
     defaultValues: { name: "", time_limit_min: 45, skills: [] },
   });
 
-  const { register, handleSubmit, control, setValue, reset, formState: { errors } } = form;
+  const { register, handleSubmit, control, setValue, reset } = form;
   const { fields, append, remove, move } = useFieldArray({ control, name: "skills" });
 
   useEffect(() => {

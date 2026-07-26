@@ -19,7 +19,7 @@ const LEVEL_PLACEHOLDERS: Record<number, string> = {
 };
 
 export default function CustomSkillForm({ index, form }: CustomSkillFormProps) {
-  const { register, setValue, formState: { errors } } = form;
+  const { register, setValue } = form;
   const expectedLevel = useWatch({ control: form.control, name: `skills.${index}.expected_level` });
 
   return (
