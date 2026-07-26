@@ -14,6 +14,7 @@ RSpec.describe 'E2E business flow — assessments + skills', type: :request do
     seed_taxonomy_skill!
   end
 
+  # rubocop:disable RSpec/ExampleLength, RSpec/MultipleExpectations -- intentional single continuity scenario TC-E2E-001..008
   it 'create → list → taxonomies → show → add/remove skills with re-read continuity' do
     # TC-E2E-001 — Create
     post '/api/v1/assessments',
@@ -28,7 +29,7 @@ RSpec.describe 'E2E business flow — assessments + skills', type: :request do
 
     expect(response).to have_http_status(:created)
     created = json_body
-    expect(created['system_prompt_generated']).to eq(true)
+    expect(created['system_prompt_generated']).to be(true)
     assessment_id = created.dig('assessment', 'id')
     expect(assessment_id).to be_present
     expect(created.dig('assessment', 'name')).to eq(assessment_name)
@@ -88,14 +89,14 @@ RSpec.describe 'E2E business flow — assessments + skills', type: :request do
         headers: headers
 
     expect(response).to have_http_status(:ok)
-    expect(json_body['system_prompt_generated']).to eq(true)
+    expect(json_body['system_prompt_generated']).to be(true)
 
     get "/api/v1/assessments/#{assessment_id}", headers: headers
     skills = json_body.dig('assessment', 'skills')
     tax_row = skills.find { |s| s['skill_id'] == tax_skill_id }
     expect(tax_row).to be_present
     expect(tax_row['skill_label']).to eq(tax_skill_label)
-    expect(tax_row['is_custom']).to eq(false)
+    expect(tax_row['is_custom']).to be(false)
     tax_assessment_skill_id = tax_row['id']
 
     # TC-E2E-006 — PUT add custom skill; taxonomy must remain
@@ -132,7 +133,7 @@ RSpec.describe 'E2E business flow — assessments + skills', type: :request do
     expect(skills.find { |s| s['id'] == tax_assessment_skill_id || s['skill_id'] == tax_skill_id }).to be_present
     custom_row = skills.find { |s| s['skill_label'] == 'E2E Custom Negotiation' }
     expect(custom_row).to be_present
-    expect(custom_row['is_custom']).to eq(true)
+    expect(custom_row['is_custom']).to be(true)
     custom_assessment_skill_id = custom_row['id']
 
     # TC-E2E-007 — Destroy taxonomy only; custom remains
@@ -178,6 +179,7 @@ RSpec.describe 'E2E business flow — assessments + skills', type: :request do
     expect(shown['skills']).to eq([])
     expect(shown['name']).to eq(assessment_name)
   end
+  # rubocop:enable RSpec/ExampleLength, RSpec/MultipleExpectations
 
   def seed_taxonomy_skill!
     SkillTaxonomy.find_or_create_by!(skill_id: 'SK-ENG-001') do |s|

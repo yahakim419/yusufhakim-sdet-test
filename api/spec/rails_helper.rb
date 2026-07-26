@@ -10,7 +10,7 @@ require_relative '../config/environment'
 require 'rspec/rails'
 require 'sidekiq/testing'
 
-Dir[Rails.root.join('spec/support/**/*.rb')].each { |f| require f }
+Rails.root.glob('spec/support/**/*.rb').each { |f| require f }
 
 abort('The Rails environment is running in production mode!') if Rails.env.production?
 
