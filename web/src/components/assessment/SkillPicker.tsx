@@ -8,6 +8,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Search, Loader2 } from "lucide-react";
 import { skillTaxonomiesApi } from "@/services/skillTaxonomies";
+import { taxonomyToAssessmentSkill } from "@/lib/assessmentSkillsPayload";
 import type { AssessmentSkill, SkillTaxonomy } from "@/types";
 
 
@@ -37,18 +38,7 @@ export default function SkillPicker({ open, onOpenChange, onSelect }: SkillPicke
   );
 
   const handleSelect = (s: SkillTaxonomy) => {
-    onSelect({
-      skill_id: undefined,
-      skill_label: s.skill_label,
-      is_custom: false,
-      expected_level: 3,
-      scope_include: s.scope_include,
-      l1_anchor: s.l1_anchor,
-      l2_anchor: s.l2_anchor,
-      l3_anchor: s.l3_anchor,
-      l4_anchor: s.l4_anchor,
-      l5_anchor: s.l5_anchor,
-    });
+    onSelect(taxonomyToAssessmentSkill(s));
     onOpenChange(false);
     setQuery("");
   };

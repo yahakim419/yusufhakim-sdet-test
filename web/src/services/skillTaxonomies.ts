@@ -6,5 +6,5 @@ export const skillTaxonomiesApi = {
     api.get<{ skill_taxonomies: SkillTaxonomy[] }>("/skill_taxonomies"),
 
   get: (skillId: string) =>
-    api.get<{ skill_taxonomy: SkillTaxonomy }>(`/skill_taxonomies/${skillId}`),
+    api.get<{ skill: SkillTaxonomy }>(`/skill_taxonomies/${skillId}`),
 };

@@ -1,0 +1,141 @@
+name: Release gate
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-status:
+    name: release-status
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rakamin_development
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: development
+      SECRET_KEY_BASE: test_secret_key_base_for_github_actions_ci
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: rakamin_development
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://localhost:6379/1
+      TOKEN_EXPIRATION_TIME: "259200"
+      WEB_CONCURRENCY: "0"
+      BASE_URL: http://127.0.0.1:3001
+      E2E_EMAIL: admin@test-corp.example
+      E2E_PASSWORD: Password1!
+      X_TENANT_SCHEME: test-corp
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev jq
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3.2"
+          bundler-cache: true
+          working-directory: api
+
+      - name: Write API config
+        working-directory: api
+        run: |
+          cat > config/application.yml <<'EOF'
+          SECRET_KEY_BASE: test_secret_key_base_for_github_actions_ci
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: rakamin_development
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          REDIS_URL: redis://localhost:6379/1
+          TOKEN_EXPIRATION_TIME: "259200"
+          APP_BASE_URL: http://localhost:3001
+          ALLOWED_ORIGINS: "*"
+          GEMINI_API_KEY: unused
+          GEMINI_LIVE_MODEL: gemini-2.0-flash-live-001
+          GEMINI_FLASH_MODEL: gemini-2.0-flash-001
+          GEMINI_PRO_MODEL: gemini-2.0-pro-001
+          EOF
+          sed -i 's/^[[:space:]]*//' config/application.yml
+
+      - name: External e2e business-flow
+        id: e2e
+        continue-on-error: true
+        run: |
+          chmod +x .github/scripts/run-external-e2e.sh
+          .github/scripts/run-external-e2e.sh
+
+      - name: Decide releasable status
+        id: decide
+        run: |
+          # Honest default for this engagement: open P0/P1 product risks → BLOCKED
+          # even when the external API e2e is green (API contract ≠ web seam proof).
+          STATUS="blocked"
+          {
+            echo "## Release status for ${{ github.ref_name }}"
+            echo ""
+            echo "**Status: BLOCKED**"
+            echo ""
+            echo "Gate checked: external curl e2e (TC-E2E-001…008)."
+            echo "External e2e job result: ${{ steps.e2e.outcome }}"
+            echo ""
+            echo "Human call: open P0/P1 web↔API skill-persistence and outcome-signal risks remain"
+            echo "(see assessment/01-audit.md, assessment/03-release-decision.md)."
+            echo "Product code under api/ and web/ was frozen this pass — no fullstack fix-to-green."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+
+      - name: Write status artifact
+        run: |
+          mkdir -p assessment/release
+          cat > assessment/release/${{ github.ref_name }}-status.md <<EOF
+          # ${{ github.ref_name }} release status
+
+          **BLOCKED**
+
+          Checked by \`.github/workflows/release.yml\` on tag push:
+          - External e2e: assessment/scripts/e2e_business_flow.sh (TC-E2E-001…008)
+          - External e2e outcome: ${{ steps.e2e.outcome }}
+
+          Reason: open P0/P1 risks in assessment/01-audit.md (web skill destroy / taxonomy identity,
+          create response shape, system_prompt_generated honesty, taxonomy GET key mismatch).
+          Product freeze — no api/ or web/ fixes in this release cut.
+          EOF
+
+      - name: Upload release status
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-status-${{ github.ref_name }}
+          path: assessment/release/${{ github.ref_name }}-status.md
+
+      - name: Fail job — release blocked
+        run: |
+          echo "Release status is BLOCKED for ${{ github.ref_name }}."
+          exit 1

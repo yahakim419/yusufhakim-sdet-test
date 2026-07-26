@@ -18,8 +18,11 @@ web/.vite/
 # OS
 .DS_Store
 
-# Local dev scripts
-scripts/
+# Local dev scripts (repo-root only); keep CI + assessment e2e scripts tracked
+/scripts/
+!.github/scripts/
+!assessment/scripts/
+!assessment/scripts/**
 
 
 # Documents
@@ -27,3 +30,5 @@ documents/
 
 # Project skills
 .cursor/
+# Bundler local install
+api/vendor/

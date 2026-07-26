@@ -25,6 +25,7 @@ import SkillCard from "@/components/assessment/SkillCard";
 import SkillPicker from "@/components/assessment/SkillPicker";
 import { ArrowLeft, Plus, Loader2 } from "lucide-react";
 import { assessmentsApi } from "@/services/assessments";
+import { buildNestedSkillsAttributes } from "@/lib/assessmentSkillsPayload";
 import { TIME_LIMIT_OPTIONS } from "@/utils/constants";
 import type { AssessmentFormValues } from "./AssessmentNewPage";
 
@@ -35,9 +36,10 @@ export default function AssessmentEditPage() {
   const [submitting, setSubmitting] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [persistedSkillIds, setPersistedSkillIds] = useState<number[]>([]);
 
   const form = useForm<AssessmentFormValues>({
-    defaultValues: { name: "", time_limit_min: 45, skills: [] },
+    defaultValues: { name: "", time_limit_min: 45, language: "en", skills: [] },
   });
 
   const { register, handleSubmit, control, setValue, reset } = form;
@@ -48,7 +50,16 @@ export default function AssessmentEditPage() {
       .get(Number(id))
       .then((res) => {
         const a = res.data.assessment;
-        reset({ name: a.name, time_limit_min: a.time_limit_min, skills: a.skills });
+        const skills = a.skills ?? [];
+        setPersistedSkillIds(
+          skills.map((s) => s.id).filter((sid): sid is number => typeof sid === "number")
+        );
+        reset({
+          name: a.name,
+          time_limit_min: a.time_limit_min,
+          language: a.language ?? "en",
+          skills,
+        });
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -76,7 +87,11 @@ export default function AssessmentEditPage() {
       await assessmentsApi.update(Number(id), {
         name: data.name,
         time_limit_min: data.time_limit_min,
-        assessment_skills_attributes: data.skills.map((s, i) => ({ ...s, display_order: i })),
+        language: data.language,
+        assessment_skills_attributes: buildNestedSkillsAttributes(
+          data.skills,
+          persistedSkillIds
+        ),
       });
       navigate(`/assessments/${id}/invite`);
     } catch (e: any) {
