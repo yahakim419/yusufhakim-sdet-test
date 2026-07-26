@@ -1,0 +1,137 @@
+name: Release gate
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release-status:
+    name: release-status
+    runs-on: ubuntu-latest
+    outputs:
+      status: ${{ steps.decide.outputs.status }}
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: rakamin_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      RAILS_ENV: test
+      SECRET_KEY_BASE: test_secret_key_base_for_github_actions_ci
+      DB_HOST: localhost
+      DB_PORT: 5432
+      DB_NAME: rakamin_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://localhost:6379/1
+      TOKEN_EXPIRATION_TIME: "259200"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3.2"
+          bundler-cache: true
+          working-directory: api
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: API lint
+        working-directory: api
+        run: bundle exec rubocop
+
+      - name: Prepare database + e2e
+        working-directory: api
+        run: |
+          cat > config/application.yml <<'EOF'
+          SECRET_KEY_BASE: test_secret_key_base_for_github_actions_ci
+          DB_HOST: localhost
+          DB_PORT: "5432"
+          DB_NAME: rakamin_test
+          DB_USERNAME: postgres
+          DB_PASSWORD: postgres
+          REDIS_URL: redis://localhost:6379/1
+          TOKEN_EXPIRATION_TIME: "259200"
+          APP_BASE_URL: http://localhost:3001
+          ALLOWED_ORIGINS: "*"
+          GEMINI_API_KEY: unused
+          GEMINI_LIVE_MODEL: gemini-2.0-flash-live-001
+          GEMINI_FLASH_MODEL: gemini-2.0-flash-001
+          GEMINI_PRO_MODEL: gemini-2.0-pro-001
+          EOF
+          sed -i 's/^[[:space:]]*//' config/application.yml
+          bundle exec rails db:prepare
+          bundle exec rspec spec/requests/e2e_business_flow_spec.rb --format documentation
+
+      - name: Web lint, typecheck, payload tests
+        working-directory: web
+        run: |
+          npm ci
+          npm run lint
+          npm run typecheck
+          npm test
+
+      - name: Decide releasable status
+        id: decide
+        run: |
+          echo "status=releasable" >> "$GITHUB_OUTPUT"
+          {
+            echo "## Release status for ${{ github.ref_name }}"
+            echo ""
+            echo "**Status: RELEASABLE**"
+            echo ""
+            echo "Gate checked: lint, API e2e business-flow (TC-E2E-001…008), web assessment payload unit tests."
+            echo "See assessment/03-release-decision.md for the human ship/block call and accepted risks."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Write status artifact
+        run: |
+          mkdir -p assessment/release
+          cat > assessment/release/${{ github.ref_name }}-status.md <<EOF
+          # ${{ github.ref_name }} release status
+
+          **RELEASABLE**
+
+          Checked by \`.github/workflows/release.yml\` on tag push:
+          - API RuboCop
+          - API e2e business-flow specs
+          - Web lint, typecheck, payload unit tests
+          EOF
+
+      - name: Upload release status
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-status-${{ github.ref_name }}
+          path: assessment/release/${{ github.ref_name }}-status.md

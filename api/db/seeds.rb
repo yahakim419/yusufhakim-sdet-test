@@ -369,7 +369,14 @@ end
 puts "  Done — #{B7_SKILLS.size} skills seeded."
 puts ""
 
-# ── Print usage instructions ──────────────────────────────────────────────────
+# ── Admin user (local / CI assessor login) ────────────────────────────────────
+
+admin_email = "admin@test-corp.example"
+admin = User.find_or_initialize_by(email: admin_email)
+admin.password = "Password1!"
+admin.role = "admin"
+admin.save!
+puts "  Admin user ready: #{admin_email} / Password1!"
 
 org = ActiveRecord::Base.connection.select_one(
   "SELECT id, scheme FROM public.organizations WHERE scheme = '#{TEST_ORG[:scheme]}' LIMIT 1"
@@ -382,18 +389,13 @@ puts "Your test organization:"
 puts "  id     : #{org['id']}"
 puts "  scheme : #{org['scheme']}"
 puts ""
-puts "To mint a JWT for testing, open the Rails console:"
+puts "Login:"
+puts "  POST /api/v1/auth/login"
+puts "  email=#{admin_email} password=Password1!"
 puts ""
-puts "  bundle exec rails console"
+puts "Or mint a JWT in rails console:"
 puts ""
-puts "Then run:"
-puts ""
-puts "  # Assessor / admin token (can create assessments, view sessions, etc.)"
-puts "  token = JsonWebToken.encode({ user_id: 1, role: 'admin', scheme: '#{TEST_ORG[:scheme]}' })"
-puts "  puts token"
-puts ""
-puts "  # Candidate token (used in WebSocket ?token= param)"
-puts "  token = JsonWebToken.encode({ user_id: 2, role: 'student', scheme: '#{TEST_ORG[:scheme]}' })"
+puts "  token = JsonWebToken.encode({ user_id: #{admin.id}, role: 'admin', scheme: '#{TEST_ORG[:scheme]}' })"
 puts "  puts token"
 puts ""
 puts "Then hit the API:"

@@ -20,6 +20,7 @@ web/.vite/
 
 # Local dev scripts
 scripts/
+!.github/scripts/
 
 
 # Documents
