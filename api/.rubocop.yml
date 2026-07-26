@@ -1,0 +1,191 @@
+plugins:
+  - rubocop-rails
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.3
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - "bin/**/*"
+    - "db/schema.rb"
+    - "db/migrate/**/*"
+    - "db/seeds.rb"
+    - "vendor/**/*"
+    - "node_modules/**/*"
+    - "tmp/**/*"
+    - "log/**/*"
+    - "storage/**/*"
+
+Style/Documentation:
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+# Cross-platform checkouts (Windows/WSL/CI) disagree on EOL; enforce via .gitattributes instead.
+Layout/EndOfLine:
+  Enabled: false
+
+Layout/LineLength:
+  Max: 140
+  AllowedPatterns:
+    - '\A\s*#'
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: key
+  EnforcedColonStyle: key
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/MethodLength:
+  Max: 70
+
+Metrics/AbcSize:
+  Max: 60
+
+Metrics/ClassLength:
+  Max: 600
+
+Metrics/CyclomaticComplexity:
+  Max: 25
+
+Metrics/PerceivedComplexity:
+  Max: 25
+
+Metrics/ParameterLists:
+  Max: 15
+
+Naming/MethodParameterName:
+  MinNameLength: 2
+  AllowedNames:
+    - id
+    - to
+    - on
+    - in
+    - at
+    - by
+    - io
+    - x
+    - y
+    - e
+    - ex
+    - _e
+    - _ex
+    - _
+
+Naming/VariableNumber:
+  Enabled: false
+
+Naming/PredicateMethod:
+  Enabled: false
+
+Lint/NoReturnInBeginEndBlocks:
+  Enabled: false
+
+Lint/UselessConstantScoping:
+  Enabled: false
+
+Rails/FilePath:
+  Enabled: false
+
+Rails/Output:
+  Enabled: false
+
+Rails/Blank:
+  Enabled: false
+
+Rails/SkipsModelValidations:
+  Enabled: false
+
+Rails/EagerEvaluationLogMessage:
+  Enabled: false
+
+Rails/NegateInclude:
+  Enabled: false
+
+Rails/WhereRange:
+  Enabled: false
+
+Rails/FindEach:
+  Enabled: false
+
+Rails/Pluck:
+  Enabled: false
+
+Rails/ActionOrder:
+  Enabled: false
+
+Rails/Delegate:
+  Enabled: false
+
+Rails/TopLevelHashWithIndifferentAccess:
+  Enabled: false
+
+Style/OpenStructUse:
+  Enabled: false
+
+Style/SafeNavigationChainLength:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/RaiseArgs:
+  Enabled: false
+
+Style/RedundantArgument:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/NestedTernaryOperator:
+  Enabled: false
+
+Style/RescueModifier:
+  Enabled: false
+
+Style/CommentedKeyword:
+  Enabled: false
+
+Style/ArgumentsForwarding:
+  Enabled: false
+
+Style/MutableConstant:
+  Enabled: false
+
+Style/PartitionInsteadOfDoubleSelect:
+  Enabled: false
+
+Style/RedundantInterpolation:
+  Enabled: false
+
+Style/RedundantStructKeywordInit:
+  Enabled: false
+
+Style/SoleNestedConditional:
+  Enabled: false
+
+Style/GuardClause:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/RescueStandardError:
+  Enabled: false
+
+Style/EmptyStringInsideInterpolation:
+  Enabled: false
+
+RSpec/ExampleLength:
+  Max: 20

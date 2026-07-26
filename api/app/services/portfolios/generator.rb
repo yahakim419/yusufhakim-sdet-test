@@ -8,15 +8,15 @@ module Portfolios
     def initialize(session:, gemini_client: nil)
       @session = session
       @gemini_client = gemini_client || Gemini::HttpClient.new(
-        model:   ENV.fetch('GEMINI_PRO_MODEL', 'gemini-2.0-pro-001'),
-        timeout: 180  # up to 3 minutes for large transcripts
+        model: ENV.fetch('GEMINI_PRO_MODEL', 'gemini-2.0-pro-001'),
+        timeout: 180 # up to 3 minutes for large transcripts
       )
     end
 
     # Returns the Portfolio record with skills populated.
     def call
       portfolio = @session.portfolio || @session.create_portfolio!(
-        candidate_id:      @session.candidate_id,
+        candidate_id: @session.candidate_id,
         generation_status: 'pending'
       )
 
@@ -30,7 +30,7 @@ module Portfolios
 
       Rails.logger.info("[N10] Portfolio generated for session #{@session.id}")
       portfolio
-    rescue => e
+    rescue StandardError => e
       portfolio&.update!(generation_status: 'failed', generation_error: e.message)
       Rails.logger.error("[N10] Portfolio generation failed for session #{@session.id}: #{e.class} #{e.message}")
       raise
@@ -39,7 +39,7 @@ module Portfolios
     private
 
     def build_prompt
-      assessment       = @session.assessment
+      assessment = @session.assessment
       configured_skills = assessment.assessment_skills.order(:display_order)
       coverage_maps     = @session.coverage_maps.order(:id)
       turns             = @session.transcript_turns.ordered
@@ -47,7 +47,7 @@ module Portfolios
       skills_text = configured_skills.map { |s| skill_definition_block(s) }.join("\n\n")
 
       coverage_json = {
-        skills:     coverage_maps.reject(&:is_discovered).map { |m| coverage_json(m) },
+        skills: coverage_maps.reject(&:is_discovered).map { |m| coverage_json(m) },
         discovered: coverage_maps.select(&:is_discovered).map { |m| coverage_json(m) }
       }.to_json
 
@@ -125,10 +125,10 @@ module Portfolios
     end
 
     def skill_definition_block(skill)
-      lines = ["━━━━━━━━━━━━━━━"]
+      lines = ['━━━━━━━━━━━━━━━']
       lines << "SKILL: #{skill.skill_label} (#{skill.skill_id || 'custom'})"
       lines << "SCOPE: #{skill.scope_include}" if skill.scope_include.present?
-      lines << ""
+      lines << ''
       lines << "L1 — #{skill.l1_anchor}"
       lines << "L2 — #{skill.l2_anchor}"
       lines << "L3 — #{skill.l3_anchor}"
@@ -139,9 +139,9 @@ module Portfolios
 
     def coverage_json(map)
       {
-        id:          map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
-        label:       map.skill_label,
-        state:       map.state,
+        id: map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
+        label: map.skill_label,
+        state: map.state,
         probe_count: map.probe_count,
         is_discovered: map.is_discovered
       }
@@ -155,24 +155,24 @@ module Portfolios
 
       (data['configured_skills'] || []).each do |skill_data|
         portfolio.portfolio_skills.create!(
-          skill_id:           skill_data['skill_id'],
-          skill_label:        skill_data['skill_label'],
-          is_discovered:      false,
-          ai_level:           skill_data['level'].to_i.clamp(1, 5),
-          ai_confidence:      skill_data['confidence'],
-          evidence:           Array(skill_data['evidence']).first(3),
+          skill_id: skill_data['skill_id'],
+          skill_label: skill_data['skill_label'],
+          is_discovered: false,
+          ai_level: skill_data['level'].to_i.clamp(1, 5),
+          ai_confidence: skill_data['confidence'],
+          evidence: Array(skill_data['evidence']).first(3),
           competency_summary: skill_data['competency_summary']
         )
       end
 
       (data['discovered_skills'] || []).each do |skill_data|
         portfolio.portfolio_skills.create!(
-          skill_id:           nil,
-          skill_label:        skill_data['skill_label'],
-          is_discovered:      true,
-          ai_level:           skill_data['level'].to_i.clamp(1, 5),
-          ai_confidence:      skill_data['confidence'],
-          evidence:           Array(skill_data['evidence']).first(3),
+          skill_id: nil,
+          skill_label: skill_data['skill_label'],
+          is_discovered: true,
+          ai_level: skill_data['level'].to_i.clamp(1, 5),
+          ai_confidence: skill_data['confidence'],
+          evidence: Array(skill_data['evidence']).first(3),
           competency_summary: skill_data['competency_summary']
         )
       end

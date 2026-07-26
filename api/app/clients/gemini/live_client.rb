@@ -89,7 +89,8 @@ module Gemini
     end
 
     # Injects hidden context via realtimeInput.text — same channel as audio, no interleaving conflicts.
-    def inject_context(text, turn_complete: true) # turn_complete kept for interface compat, ignored
+    # turn_complete kept for interface compat, ignored
+    def inject_context(text, turn_complete: true) # rubocop:disable Lint/UnusedMethodArgument
       return false unless @connected && @ws
 
       @ws.send({ realtimeInput: { text: text } }.to_json)
@@ -166,9 +167,7 @@ module Gemini
 
       return unless (@audio_chunks_forwarded % 50).zero?
 
-      Rails.logger.debug(
-        "[Gemini::LiveClient] Audio forwarded: #{@audio_chunks_forwarded} chunks (#{@audio_bytes_forwarded}B total)"
-      )
+      Rails.logger.debug { "[Gemini::LiveClient] Audio forwarded: #{@audio_chunks_forwarded} chunks (#{@audio_bytes_forwarded}B total)" }
     end
 
     def audio_message(pcm_bytes)
@@ -436,7 +435,10 @@ module Gemini
         @model_interrupted = false
       else
         # User's turn complete (or harmless stale model turnComplete after generationComplete).
-        Rails.logger.info("[Gemini::LiveClient] User turnComplete — input_buffer=#{@input_text_buffer.length}chars silence_pumping=#{@silence_pumping}")
+        Rails.logger.info(
+          '[Gemini::LiveClient] User turnComplete — ' \
+          "input_buffer=#{@input_text_buffer.length}chars silence_pumping=#{@silence_pumping}"
+        )
         stop_silence_pump
         flush_input_buffer
       end
@@ -446,9 +448,9 @@ module Gemini
       resumption = data['sessionResumption'] || data['sessionResumptionUpdate']
       return unless resumption
 
-      Rails.logger.debug("[Gemini::LiveClient] Resumption data: #{resumption.to_json}")
+      Rails.logger.debug { "[Gemini::LiveClient] Resumption data: #{resumption.to_json}" }
       handle = resumption['newHandle'] || resumption['handle'] || resumption['token']
-      return unless handle.present?
+      return if handle.blank?
 
       @resumption_token = handle
       @on_resumption_token_update&.call(handle)
@@ -472,14 +474,14 @@ module Gemini
     end
 
     def flush_input_buffer
-      return unless @input_text_buffer.present?
+      return if @input_text_buffer.blank?
 
       @on_input_transcription&.call(@input_text_buffer.strip)
       @input_text_buffer = +''
     end
 
     def flush_output_buffer
-      return unless @output_text_buffer.present?
+      return if @output_text_buffer.blank?
 
       @on_output_transcription&.call(@output_text_buffer.strip)
       @output_text_buffer = +''

@@ -10,7 +10,8 @@ module ExceptionHandler
   class MissingToken        < StandardError; end
   class InvalidToken        < StandardError; end
   class NotFound            < StandardError; end
-  class TenantNotFound      < StandardError; end  # AI interview addition
+  # AI interview addition
+  class TenantNotFound      < StandardError; end
 
   included do
     rescue_from StandardError do |e|
@@ -54,8 +55,8 @@ module ExceptionHandler
     case e
     when ActiveRecord::RecordInvalid,
          ActiveModel::StrictValidationFailed,
-         ActionController::ParameterMissing  then 422
-    when ExceptionHandler::Unauthorized       then 403
+         ActionController::ParameterMissing then 422
+    when ExceptionHandler::Unauthorized then 403
     when ExceptionHandler::MissingToken,
          ExceptionHandler::InvalidToken       then 401
     when ActiveRecord::RecordNotFound         then 404
@@ -66,7 +67,7 @@ module ExceptionHandler
   def human_message(e)
     case e
     when ActiveRecord::RecordInvalid then e.record.errors.full_messages.first
-    else "An unexpected error occurred."
+    else 'An unexpected error occurred.'
     end
   end
 end

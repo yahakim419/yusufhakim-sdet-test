@@ -10,16 +10,16 @@ module Coverage
     def initialize(session:, gemini_client: nil)
       @session = session
       @gemini_client = gemini_client || Gemini::HttpClient.new(
-        model:   ENV.fetch('GEMINI_FLASH_MODEL', 'gemini-2.0-flash-001'),
+        model: ENV.fetch('GEMINI_FLASH_MODEL', 'gemini-2.0-flash-001'),
         timeout: 45
       )
     end
 
     # Returns { skill_updates: [...], discovered_skills: [...] } or raises on error.
     def call
-      turns        = last_n_turns
+      turns = last_n_turns
       coverage_maps = @session.coverage_maps.order(:id).to_a
-      skills       = @session.assessment.assessment_skills.order(:display_order).to_a
+      skills = @session.assessment.assessment_skills.order(:display_order).to_a
 
       return { skill_updates: [], discovered_skills: [] } if turns.empty?
 
@@ -41,7 +41,7 @@ module Coverage
       skills_text = skills.map { |s| "- #{s.skill_id || s.skill_label}: #{s.skill_label} — #{s.scope_include}" }.join("\n")
 
       coverage_json = {
-        skills:     coverage_maps.reject(&:is_discovered).map { |m| coverage_map_json(m) },
+        skills: coverage_maps.reject(&:is_discovered).map { |m| coverage_map_json(m) },
         discovered: coverage_maps.select(&:is_discovered).map { |m| coverage_map_json(m) }
       }.to_json
 
@@ -97,9 +97,9 @@ module Coverage
 
     def coverage_map_json(map)
       {
-        id:          map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
-        label:       map.skill_label,
-        state:       map.state,
+        id: map.skill_id || map.skill_label.downcase.gsub(/\s+/, '-'),
+        label: map.skill_label,
+        state: map.state,
         probe_count: map.probe_count
       }
     end
@@ -135,22 +135,22 @@ module Coverage
         # exchanges and inflates probe_count. Cap the increment at +1 per run:
         # one exchange = one probe. Apply this before the StateEngine gate check
         # so state advancement also uses the correct count.
-        safe_probe = [[raw_probe_count, map.probe_count + 1].min, map.probe_count].max
+        safe_probe = raw_probe_count.clamp(map.probe_count, map.probe_count + 1)
 
         # Enforce hard rules via StateEngine
         safe_state = StateEngine.resolve_state(
-          current_state:  map.state,
+          current_state: map.state,
           proposed_state: new_state,
-          probe_count:    safe_probe
+          probe_count: safe_probe
         )
 
         {
           coverage_map_id: map.id,
-          skill_id:        map.skill_id,
-          skill_label:     map.skill_label,
-          new_state:       safe_state,
+          skill_id: map.skill_id,
+          skill_label: map.skill_label,
+          new_state: safe_state,
           new_probe_count: safe_probe,
-          last_signal:     reason
+          last_signal: reason
         }
       end
     end
@@ -158,7 +158,7 @@ module Coverage
     def parse_discovered(discovered_skills)
       discovered_skills.map do |d|
         {
-          label:         d['label'],
+          label: d['label'],
           first_mention: d['first_mention']
         }
       end

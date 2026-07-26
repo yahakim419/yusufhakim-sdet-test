@@ -65,8 +65,8 @@ class ApplicationController < ActionController::API
 
   def path_params
     @path_params ||= request.path_parameters
-                             .except(:controller, :action)
-                             .with_indifferent_access
+                            .except(:controller, :action)
+                            .with_indifferent_access
   end
 
   def request_body

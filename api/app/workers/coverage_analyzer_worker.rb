@@ -3,7 +3,7 @@
 class CoverageAnalyzerWorker
   include Sidekiq::Worker
 
-  sidekiq_options queue: :coverage, retry: 0  # non-critical — no retry
+  sidekiq_options queue: :coverage, retry: 0 # non-critical — no retry
 
   def perform(session_id, turn_number)
     session = Session.find(session_id)
@@ -29,7 +29,7 @@ class CoverageAnalyzerWorker
     Rails.logger.info("[N7] Coverage analyzed for session #{session_id}, turn #{turn_number}")
   rescue ActiveRecord::RecordNotFound
     Rails.logger.warn("[N7] Session #{session_id} not found — skipping")
-  rescue => e
+  rescue StandardError => e
     # N7 failure is non-critical — log and let the interview continue
     Rails.logger.error("[N7] Coverage analyzer failed for session #{session_id}: #{e.class} #{e.message}")
   end
@@ -41,7 +41,7 @@ class CoverageAnalyzerWorker
       session.coverage_maps
              .find_by(id: update[:coverage_map_id])
              &.update!(
-               state:       update[:new_state],
+               state: update[:new_state],
                probe_count: update[:new_probe_count],
                last_signal: update[:last_signal]
              )
@@ -54,12 +54,12 @@ class CoverageAnalyzerWorker
       next if session.coverage_maps.discovered.count >= 10
 
       session.coverage_maps.create!(
-        skill_id:      nil,
-        skill_label:   discovered[:label],
+        skill_id: nil,
+        skill_label: discovered[:label],
         is_discovered: true,
-        state:         'initiated',
-        probe_count:   1,
-        last_signal:   discovered[:first_mention]
+        state: 'initiated',
+        probe_count: 1,
+        last_signal: discovered[:first_mention]
       )
     end
   end
@@ -69,15 +69,15 @@ class CoverageAnalyzerWorker
     discovered = session.coverage_maps.discovered.order(:id)
 
     payload = {
-      type:      'coverage_update',
-      skills:    maps.map { |m| coverage_json(m) },
+      type: 'coverage_update',
+      skills: maps.map { |m| coverage_json(m) },
       discovered: discovered.map { |m| coverage_json(m) }
     }.to_json
 
     # H5 fix: use Sidekiq's pooled Redis connection instead of creating
     # a new (leaked) connection on every publish.
     Sidekiq.redis { |conn| conn.publish("coverage:#{session.id}", payload) }
-  rescue => e
+  rescue StandardError => e
     Rails.logger.error("[N7] Failed to publish coverage update: #{e.message}")
   end
 
@@ -91,7 +91,7 @@ class CoverageAnalyzerWorker
   def advance_stale_partials(session, exclude_ids: [])
     scope = session.coverage_maps
                    .where(state: 'partial')
-                   .where('probe_count >= ?', 4)
+                   .where(probe_count: 4..)
     scope = scope.where.not(id: exclude_ids) if exclude_ids.any?
 
     scope.each do |map|
@@ -102,13 +102,13 @@ class CoverageAnalyzerWorker
 
   def coverage_json(map)
     {
-      id:            map.id,
-      skill_id:      map.skill_id,
-      skill_label:   map.skill_label,
+      id: map.id,
+      skill_id: map.skill_id,
+      skill_label: map.skill_label,
       is_discovered: map.is_discovered,
-      state:         map.state,
-      probe_count:   map.probe_count,
-      last_signal:   map.last_signal
+      state: map.state,
+      probe_count: map.probe_count,
+      last_signal: map.last_signal
     }
   end
 end
