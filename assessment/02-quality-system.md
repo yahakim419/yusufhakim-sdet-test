@@ -1,47 +1,49 @@
 # Quality system
 
-Small, sharp net for the **assessments + skills** critical path. Not a coverage-percentage chase.
+Small, sharp net for the **assessments + skills** critical path. Lives **outside** `api/` and `web/` (product freeze this pass).
+
+## Assumption
+
+Task 3 fullstack “fix to green” in product code is **out of scope**. Open P0/P1s stay open; release stays **blocked**. Green on the external API e2e proves the **API nested-attributes contract**, not the web builder payload.
 
 ## What it protects
 
 | Check | Protects | Maps to |
 |-------|----------|---------|
 | DoR PR gate | No merge without linked Spec/PRD, acceptance criteria, design plan | Audit #3 (missing inputs) |
-| API e2e request spec | Create → list → taxonomies → show → taxonomy/custom skill add → selective `_destroy` with re-read assertions | TC-E2E-001…008 |
-| Web payload unit tests | Taxonomy pick keeps `skill_id` + `scope_exclude`; edit remove emits `_destroy` | Audit #1, #2 |
+| External curl e2e | Create → list → taxonomies → show → taxonomy/custom skill add → selective `_destroy` with re-read | TC-E2E-001…008 |
+| Web payload contract doc | Documents `_destroy` + taxonomy identity expected of the client | Audit #1, #2 (not automated in `web/`) |
 | Lint (existing) | RuboCop / ESLint / tsc | Hygiene only |
 
 ## What it deliberately does not cover
 
-- Login/signup UI and auth failure matrices
+- Product fixes under `api/` or `web/`
+- Web UI / Vitest / Playwright (builder seams remain audit **open**)
+- In-tree RSpec under `api/spec` as the submission story (files may exist from prior work; CI does not depend on editing them)
+- Login/signup UI matrices
 - Portfolio / fit-gap / Sidekiq generation correctness
-- Full browser E2E (Playwright)
-- Tenant fail-open hardening (accepted risk in audit)
-- Prompt worker success vs enqueue (`system_prompt_generated` honesty)
+- Tenant fail-open hardening
 
 ## How to run
 
-### API e2e (needs Postgres + Redis; see `api/README.md` / Docker)
+### External e2e (needs running API + Postgres + Redis)
 
 ```bash
-cd api
-# DB + SECRET_KEY_BASE configured for test
-bundle exec rails db:prepare
-bundle exec rspec spec/requests/e2e_business_flow_spec.rb
+# Start API (Docker or local — see repo README / api/README.md), then:
+export BASE_URL=http://localhost:3001
+export E2E_EMAIL=admin@test-corp.example   # or your admin
+export E2E_PASSWORD='Password1!'             # or your password
+export X_TENANT_SCHEME=test-corp
+./assessment/scripts/e2e_business_flow.sh
 ```
 
-Seeded admin for local API login after `rails db:seed`:
-
-- email: `admin@test-corp.example`
-- password: `Password1!`
-
-### Web payload tests
+CI helper (boots API after `db:prepare` + `db:seed` without editing `api/` sources):
 
 ```bash
-cd web
-npm ci
-npm test
+.github/scripts/run-external-e2e.sh
 ```
+
+Credentials must come from env (or an already-seeded admin). This pass does **not** change `api/db/seeds.rb`.
 
 ### Definition of Ready (local)
 
@@ -51,35 +53,32 @@ npm test
 
 CI: [`.github/workflows/quality.yml`](../.github/workflows/quality.yml) on PR/`main`; release tag gate in [`.github/workflows/release.yml`](../.github/workflows/release.yml).
 
-## Design notes (for DoR links)
+### Web contract (docs only)
 
-Nested skill updates use Rails `accepts_nested_attributes_for` with `allow_destroy: true`. The web must:
+[`scripts/web_payload_contract.md`](scripts/web_payload_contract.md) + [`fixtures/assessment_skills_destroy.json`](fixtures/assessment_skills_destroy.json).
 
-1. Send taxonomy identity (`skill_id`, anchors, `scope_exclude`) when picking from B7 — [`taxonomyToAssessmentSkill`](../web/src/lib/assessmentSkillsPayload.ts).
-2. On edit save, send `{ id, _destroy: true }` for skills removed in the UI — [`buildNestedSkillsAttributes`](../web/src/lib/assessmentSkillsPayload.ts).
+## Design notes (DoR links)
+
+Nested skill updates use Rails `accepts_nested_attributes_for` with `allow_destroy: true`. A correct client must:
+
+1. Send taxonomy identity (`skill_id`, anchors, `scope_exclude`) when picking from B7.
+2. On edit save, send `{ id, _destroy: true }` for skills removed in the UI.
 
 Omitting a nested record does **not** delete it.
 
-## Red → green
+## Red → green (this pass)
 
-### What was red
+### What stays red / open
 
-1. **Web edit remove** — UI `remove(index)` + PUT of remaining skills only; API kept deleted skills. Would fail any check requiring `_destroy` (unit test `buildNestedSkillsAttributes`; manual re-read after UI remove).
-2. **Taxonomy pick** — `SkillPicker` set `skill_id: undefined` and dropped `scope_exclude`. Failed continuity vs TC-E2E-005 expectations and `taxonomyToAssessmentSkill` unit test.
-3. **No automated net** — lint-only CI; business-flow defects invisible.
-4. **Taxonomy GET client key** — expected `skill_taxonomy`, API returns `skill`.
+1. **Web edit remove without `_destroy`** — audit P0; product freeze.
+2. **Taxonomy pick dropping `skill_id` / `scope_exclude`** — audit P0; product freeze.
+3. **Create 201 omits `skills`**, **`system_prompt_generated` honesty**, **taxonomy GET key mismatch** — audit P1s; open.
+4. Release tag workflow surfaces **BLOCKED** while those remain.
 
-### What changed
+### What went green (process only)
 
-- Extracted payload helpers; wired `SkillPicker` + `AssessmentEditPage`.
-- Fixed `skillTaxonomiesApi.get` response key; `skill_id` typing; SkillCard label.
-- Added RSpec e2e business-flow + Vitest payload tests + DoR gate + quality/release workflows.
-- Seeded deterministic admin user.
+1. **DoR gate** — PR without Spec/AC/design links fails `dor-gate`.
+2. **External e2e script** — TC-E2E-001…008 asserts API persisted continuity when credentials and seed data exist.
+3. **Release honesty** — tag gate does not claim releasable for client skill-builder trustworthiness.
 
-### What is green now
-
-- `npm test` — taxonomy + `_destroy` payload contracts.
-- `rspec …e2e_business_flow_spec.rb` — API nested add/destroy continuity.
-- PR without DoR links fails `dor-gate`.
-
-Root cause (not symptom): web treated the form as a full replace of nested skills; API is incremental/destroy-explicit. Fix aligns the client with the API contract instead of weakening tests.
+Root cause of the P0 class (unchanged, unfixed): web can treat nested skills as a full form replace; API is incremental/destroy-explicit. This pass documents and gates that class; it does **not** patch the client.

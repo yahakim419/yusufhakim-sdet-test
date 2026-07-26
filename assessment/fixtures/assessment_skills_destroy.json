@@ -1,0 +1,13 @@
+{
+  "assessment": {
+    "name": "E2E Business Flow Assessment",
+    "time_limit_min": 30,
+    "language": "en",
+    "assessment_skills_attributes": [
+      {
+        "id": 10,
+        "_destroy": true
+      }
+    ]
+  }
+}

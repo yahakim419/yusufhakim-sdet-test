@@ -2,24 +2,25 @@
 
 ## Claims
 
-This version claims the **assessment builder critical path** is trustworthy for client use:
+This version claims a **workflow quality net** for the assessment builder critical path — not client-ready skill-builder product trustworthiness.
 
-- Create assessment → list → show continuity (id + name + time limit)
-- Add taxonomy and custom skills with persisted re-read
-- Selective nested skill remove via `_destroy` (API + web edit)
-- Quality net: Definition-of-Ready PR gate, API e2e (TC-E2E-001…008), web payload unit tests, lint
+Included:
 
-## Included in this release
-
-- Ranked audit of assessments+skills risks (`assessment/01-audit.md`)
-- Quality system docs and CI (`assessment/02-quality-system.md`, `.github/workflows/quality.yml`)
-- Fixes for web taxonomy `skill_id` / `scope_exclude` drop and edit-remove without `_destroy`
-- Seeded local admin `admin@test-corp.example` for assessor flows
-- Release-gated CI on `v*` tags (`.github/workflows/release.yml`)
+- Ranked audit of assessments+skills risks (`assessment/01-audit.md`) with open P0/P1 product seams
+- External curl e2e for TC-E2E-001…008 (`assessment/scripts/e2e_business_flow.sh`)
+- Definition-of-Ready PR gate (`.github/scripts/check-dor.sh` + `quality.yml`)
+- Web→API payload contract documented outside `web/` (`assessment/scripts/web_payload_contract.md`)
+- Release-gated CI on `v*` tags that surfaces **BLOCKED** while open P0/P1s remain
 
 ## Not claimed
 
+- Web edit remove / taxonomy `skill_id` persistence fixes (product freeze; audit P0s **open**)
+- Create `201` skills key parity with show/update
+- `system_prompt_generated` meaning true generation success
 - Portfolio / fit-gap / interview session correctness
 - Multi-tenant fail-closed hardening
 - Signup / login UI completeness
-- `system_prompt_generated` meaning true generation success (still means “job enqueued”)
+
+## Status
+
+**BLOCKED** for client delivery of the assessment + skills builder. See `assessment/03-release-decision.md`.

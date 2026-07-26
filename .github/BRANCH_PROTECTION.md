@@ -5,7 +5,7 @@ Required status check names (after each has run at least once on the default bra
 | Check | Workflow | Blocks |
 |-------|----------|--------|
 | `lint` | [lint.yml](workflows/lint.yml) | Style / type |
-| `quality` | [quality.yml](workflows/quality.yml) | DoR + API e2e + web payload |
+| `quality` | [quality.yml](workflows/quality.yml) | DoR + external e2e |
 
 ## GitHub UI
 
@@ -38,10 +38,10 @@ EOF
 
 ## Local commands
 
-| App | Command |
-|-----|---------|
+| Check | Command |
+|-------|---------|
 | API lint | `cd api && bundle exec rubocop` |
-| API e2e | `cd api && bundle exec rspec spec/requests/e2e_business_flow_spec.rb` |
+| External e2e | `BASE_URL=… E2E_EMAIL=… E2E_PASSWORD=… ./assessment/scripts/e2e_business_flow.sh` |
+| External e2e (CI helper) | `.github/scripts/run-external-e2e.sh` |
 | Web lint | `cd web && npm run lint && npm run typecheck` |
-| Web payload tests | `cd web && npm test` |
 | DoR script | `.github/scripts/check-dor.sh /path/to/pr-body.md` |
